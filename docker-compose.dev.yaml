@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      # target: final  # 本番環境で必要な場合はコメントアウトを解除
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/tmp
+    environment:
+      GO_ENV: development
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: gonets_dev
+    user: "${UID}:${GID}"
+    depends_on:
+      db:
+        condition: service_healthy  # dbが健康チェックを通過してから起動
+
+  db:
+    image: postgres:17.0-alpine
+    # restart: always
+    user: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: gonets_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:

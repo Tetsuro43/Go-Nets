@@ -1,0 +1,36 @@
+# ベースイメージとして Go を使用
+FROM golang:1.23-alpine AS build
+
+# 作業ディレクトリを作成
+WORKDIR /app
+
+# ユーザーとグループを作成（一旦削除）
+# RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# GOCACHE 環境変数を設定
+ENV GOCACHE=/app/tmp/go-cache
+
+# 依存関係ファイルをコピーして依存関係をダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
+
+# ソースコードをすべてコピー
+COPY . .
+
+# ビルドキャッシュ用ディレクトリの作成と権限設定（一旦削除）
+# RUN mkdir -p /app/tmp/go-cache && chown -R appuser:appgroup /app/tmp
+
+# Airを実行するためのcosmtrek/airをマルチステージで使用
+FROM cosmtrek/air
+
+# 前のステージからソースコードと依存関係をコピー
+COPY --from=build /app /app
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# コンテナ内でのユーザーを設定（一旦削除）
+# USER appuser
+
+# コンテナ起動時にAirでホットリロード
+CMD ["air"]
